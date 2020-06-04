@@ -455,6 +455,9 @@ class CGD(Optimizer):
     rho: float
         the hyperparameter for computing the beta using the mhs method
 
+    t: float
+        the hyperparameter for computing the beta using the dl method
+
     max_epochs: int
         the maximum number of epochs
 
@@ -468,7 +471,7 @@ class CGD(Optimizer):
     """
 
     def __init__(self, nn, beta_m, max_epochs, error_goal, d_m='standard',
-                 sigma_1=1e-4, sigma_2=.4, rho=0., **kwargs):
+                 sigma_1=1e-4, sigma_2=.4, rho=0., t=0.,**kwargs):
         """
         The class' constructor.
 
@@ -507,6 +510,10 @@ class CGD(Optimizer):
             the hyperparameter for computing the beta using the mhs method
             (Default value = 0.)
 
+        t: float
+            the hyperparameter for computing the beta using the dl method
+            (Default value = 0.)
+
         kwargs: dict
             additional parameters
         """
@@ -519,6 +526,7 @@ class CGD(Optimizer):
         self.sigma_1 = sigma_1
         self.sigma_2 = sigma_2
         self.rho = rho
+        self.t = t
         self.max_epochs = max_epochs
         self.error_goal = error_goal
         self.params = self.get_params(nn)
@@ -544,6 +552,7 @@ class CGD(Optimizer):
         self.params = dict()
         self.params['beta_m'] = self.beta_m
         self.params['rho'] = self.rho
+        self.params['t'] = self.t
         self.params['sigma_1'] = self.sigma_1
         self.params['sigma_2'] = self.sigma_2
         self.params['d_m'] = self.d_m
@@ -647,9 +656,13 @@ class CGD(Optimizer):
             # TODO refactoring chiamata del calcolo per beta
             if self.beta_m == 'fr' or self.beta_m == 'pr' or self.beta_m == 'cd':
                 beta = self.get_beta(g, g_prev, self.beta_m, plus=plus)
-            elif self.beta_m == 'hs' or self.beta_m == 'dy' or self.beta_m == 'dl':
+            elif self.beta_m == 'hs' or self.beta_m == 'dy' :
                 beta = self.get_beta(g, g_prev, self.beta_m, plus=plus,
                                      d_prev=d_prev)
+            elif self.beta_m == 'dl':
+                beta = self.get_beta(g, g_prev, self.beta_m, plus=plus,
+                                    w=flatted_weights, w_prev=w_prev,
+                                     d_prev=d_prev,t=self.t)
             else:
                 beta = self.get_beta(g, g_prev, self.beta_m, plus=plus,
                                      d_prev=d_prev, error=self.error,
@@ -841,6 +854,9 @@ class CGD(Optimizer):
                 an hyperparameter between 0 and 1
                 (Default value = None)
 
+            t: float
+                an hyperparameter between 0 and 1
+                (Default value = None)
         Returns
         -------
         The beta computed with the specified formula.
@@ -865,10 +881,12 @@ class CGD(Optimizer):
             beta = np.square((np.linalg.norm(g))) / \
                 (np.asscalar((g - g_prev).T.dot(kwargs['d_prev'])))
         elif method == 'dl': #da
-            assert 'd_prev' in kwargs
+            assert 'd_prev' in kwargs and 't' in kwargs 
             beta = (np.asscalar(g.T.dot(g - g_prev))) / \
                 (np.asscalar((g - g_prev).T.dot(kwargs['d_prev'])))
-
+            s = kwargs['w'] - kwargs['w_prev']
+            beta = beta - kwargs['t']*(g.T.dot(s))/ \
+                 (kwargs['d_prev'].T.dot(g - g_prev))
                 
         elif method == 'cd': 
             beta = np.square((np.linalg.norm(g))) / \

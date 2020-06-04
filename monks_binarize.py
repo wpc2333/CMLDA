@@ -47,7 +47,7 @@ def read_monk(fname):
     return out_set
 
 
-fpath = '../datasets/monks/'
+fpath = '../data/monks/'
 
 names = ['monks-1_train',
          'monks-1_test',

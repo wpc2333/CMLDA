@@ -134,7 +134,8 @@ if testing:
         pars = {'max_epochs': epochs,
                 'error_goal': 1e-4,
                 'strong': True,
-                'rho': 0.0}
+                'rho': 0.0,
+                't': 0.0}
         if testing_betas:
             for beta in betas:
                 pars['beta_m'] = beta
@@ -171,6 +172,8 @@ if testing:
             pars['beta_m'] = beta_choice
             if beta_choice == 'mhs':
                 pars['rho'] = 0.67
+            if beta_choice == 'dl':
+                pars['t'] = 0.67
             neural_net.train(X_training, y_training, opt, X_va=X_validation,
                              y_va=y_validation, **pars)
 
@@ -314,6 +317,11 @@ if validation:
             param_ranges['rho'] = (0., 1.)
         else:
             param_ranges['rho'] = 0.0
+
+        if beta_m == 'dl':
+            param_ranges['t'] = (0., 1.)
+        else:
+            param_ranges['t'] = 0.0
 
     param_ranges['optimizer'] = opt
     param_ranges['hidden_sizes'] = [4, 8]
